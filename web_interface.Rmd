@@ -1,0 +1,386 @@
+---
+title: "Zillow_hypothesis"
+author: "Manisha"
+date: "2023-08-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Interactive component
+
+
+<html lang="en">
+    
+<head>
+        <meta charset="utf-8">
+        <title></title>
+        <script src="https://d3js.org/d3.v4.js"></script>
+
+        <style type ="text/css">
+
+  .line1 {
+        fill: none;
+        stroke: black;
+        stroke-width: 2.0px;
+      }
+	 
+	  
+	  #format1{
+			  font-size:20px;
+			  font-family:Roboto;}
+			  
+	  #format2{
+			  font-size:15px;
+			  font-family:Roboto;}
+        </style>
+		
+		
+      
+    </head>
+    
+    <body>
+    <svg width="660" height="500" id="svg3">
+	<text id="format1" x="200" y="80">Median Rent in the US 2019 to 2021</text>
+	</svg>
+
+
+* Analyzing the median rent in the entire US from 2019 to 2021 (the period when the pandemic was happening), surprisingly there is no drop in the rental prices.
+* And neither it didn't shoot up well. 
+* Instead we could see a steady flat line indicating that the rental prices of US were stable during the pandemic time.
+
+<!-- Color Scale -->
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+	
+
+<text id="format1" x="200" y="80">Median Rent by Cities</text>
+<br>
+<select id="selectButton"></select>
+
+<!-- Create a div where the graph will take place -->
+<div id="filtered_data"></div>
+
+
+<text id="format1" x="200" y="80">Median Rent of Popular Cities</text>
+<!-- Add 2 buttons -->
+<br>
+<button onclick="update_bar(data19)">2019</button>
+<button onclick="update_bar(data20)">2020</button>
+<button onclick="update_bar(data21)">2021</button>
+
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz_bar"></div>
+
+
+<script>
+
+// create 2 data_set
+var data19 = [
+{group: "San Jose, CA", value: 3090.5},
+{group: "San Francisco, CA", value: 3015},
+{group: "New York, NY", value: 2743.5},
+{group: "Boston, MA", value: 2483.5},
+{group: "Ventura, CA", value: 2436.5},
+{group: "Urban Honolulu, HI", value: 2349.5},
+{group: "Los Angeles-Long Beach-Anaheim, CA", value: 2304.5},
+{group: "San Diego, CA", value: 2230},
+{group: "Stamford, CT", value: 2169.5}
+];
+
+var data20 = [
+{group: "San Jose, CA", value: 3027},
+{group: "San Francisco, CA", value: 2936.5},
+{group: "New York, NY", value: 2659},
+{group: "Boston, MA", value: 2454.5},
+{group: "Ventura, CA", value: 2495},
+{group: "Urban Honolulu, HI", value: 2356.5},
+{group: "Los Angeles-Long Beach-Anaheim, CA", value: 2322.5},
+{group: "San Diego, CA", value: 2282.5},
+{group: "Stamford, CT", value: 2237.5}];
+
+var data21 = [
+{group: "San Jose, CA", value: 2993.5},
+{group: "San Francisco, CA", value: 2909.5},
+{group: "New York, NY", value: 2667},
+{group: "Boston, MA", value: 2498},
+{group: "Ventura, CA", value: 2746},
+{group: "Urban Honolulu, HI", value: 2487},
+{group: "Los Angeles-Long Beach-Anaheim, CA", value: 2430.5},
+{group: "San Diego, CA", value: 2490.5},
+{group: "Stamford, CT", value: 2421}];    
+
+
+
+// set the dimensions and margins of the graph
+var margin_bar = {top: 30, right: 30, bottom: 70, left: 60},
+    width_bar = 660 - margin_bar.left - margin_bar.right,
+    height_bar = 400 - margin_bar.top - margin_bar.bottom;
+
+// append the svg object to the body of the page
+var svg_bar = d3.select("#my_dataviz_bar")
+  .append("svg")
+    .attr("width", width_bar + margin_bar.left + margin_bar.right)
+    .attr("height", height_bar + margin_bar.top + margin_bar.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + margin_bar.left + "," + margin_bar.top + ")");
+
+// Initialize the X axis
+var x = d3.scaleBand()
+  .range([ 0, width_bar ])
+  .padding(0.2);
+    
+    
+var xAxis = svg_bar.append("g")
+  .attr("transform", "translate(0," + height_bar + ")")
+
+// Initialize the Y axis
+var y = d3.scaleLinear()
+  .range([ height_bar, 0]);
+var yAxis = svg_bar.append("g")
+  .attr("class", "myYaxis")
+
+
+// A function that create / update the plot for a given variable:
+function update_bar(data) {
+
+  // Update the X axis
+  x.domain(data.map(function(d) { return d.group; }))
+  xAxis.call(d3.axisBottom(x))
+      .selectAll("text")
+    .attr("y", 0)
+    .attr("x", 9)
+    .attr("dy", ".35em")
+    .attr("transform", "rotate(90)")
+    .style("text-anchor", "start");
+
+
+  // Update the Y axis
+  y.domain([1000, 3000]);
+  yAxis.transition().duration(1000).call(d3.axisLeft(y));
+    
+    //var svg = d3.select("#my_dataviz_bar")
+  // Create the u variable
+  var u = svg_bar.selectAll("rect")
+    .data(data)
+
+  u
+    .enter()
+    .append("rect") // Add a new rect for each new elements
+    .merge(u) // get the already existing elements as well
+    .transition() // and apply changes to all of them
+    .duration(1000)
+      .attr("x", function(d) { return x(d.group); })
+      .attr("y", function(d) { return y(d.value); })
+      .attr("width", x.bandwidth())
+      .attr("height", function(d) { return height_bar - y(d.value); })
+      .attr("fill", "#69b3a2")
+
+  // If less group in the new dataset, I delete the ones not in use anymore
+  u
+    .exit()
+    .remove()
+}
+
+// Initialize the plot with the first dataset
+update_bar(data19)
+
+</script>
+    <script>
+      
+	  var svg3 = d3.select("#svg3")
+      var margin3 = {top: 100, right: 50, bottom: 30, left: 60}
+      var width3 =  +svg3.attr("width") - margin3.left - margin3.right
+      var height3 = +svg3.attr("height") - margin3.top - margin3.bottom
+      var g3 = svg3.append("g").attr("transform", `translate(${margin3.left}, ${margin3.top})`);
+      var parseTime = d3.timeParse("%b-%y");
+      var xScale3 = d3.scaleTime().range([0, width3]);
+      var yScale3 = d3.scaleLinear()
+        .domain([0, 3000])
+        .range([height3, 0]);
+      var line3 = d3.line()
+        .x(d => xScale3(d.date))
+        .y(d => yScale3(d.high));
+      var data3 = 
+      [{"date":"Jan-19","high":1270},
+{"date":"Feb-19","high":1274},
+{"date":"Mar-19","high":1278},
+{"date":"Apr-19","high":1283},
+{"date":"May-19","high":1288},
+{"date":"Jun-19","high":1294},
+{"date":"Jul-19","high":1300},
+{"date":"Aug-19","high":1304},
+{"date":"Sep-19","high":1309},
+{"date":"Oct-19","high":1313},
+{"date":"Nov-19","high":1316},
+{"date":"Dec-19","high":1319},
+{"date":"Jan-20","high":1322},
+{"date":"Feb-20","high":1326},
+{"date":"Mar-20","high":1330},
+{"date":"Apr-20","high":1334},
+{"date":"May-20","high":1341},
+{"date":"Jun-20","high":1344},
+{"date":"Jul-20","high":1348},
+{"date":"Aug-20","high":1351},
+{"date":"Sep-20","high":1359},
+{"date":"Oct-20","high":1367},
+{"date":"Nov-20","high":1376},
+{"date":"Dec-20","high":1390},
+{"date":"Jan-21","high":1405},
+{"date":"Feb-21","high":1420},
+{"date":"Mar-21","high":1439},
+{"date":"Apr-21","high":1463},
+{"date":"May-21","high":1479.5},
+{"date":"Jun-21","high":1502},
+{"date":"Jul-21","high":1520},
+{"date":"Aug-21","high":1539},
+{"date":"Sep-21","high":1554},
+{"date":"Oct-21","high":1572.5}];
+		
+      data3.forEach(function(d) {
+            d.date = parseTime(d.date);
+      });
+     
+      xScale3
+        .domain(d3.extent(data3, d => d.date));
+        
+      g3.append("g")
+          .attr("transform", `translate(0, ${height3})`)
+          .call(d3.axisBottom(xScale3).ticks(18));
+      g3.append("g")
+          .call(d3.axisLeft(yScale3));
+      g3.append("path")
+          .datum(data3)
+          .attr("class", "line1")
+          .attr("fill", "none")
+          .attr("d", line3);
+		  
+	  let totalLength1 = svg3.select('.line1').node().getTotalLength();
+
+	  svg3.select('.line1')
+		.attr("stroke-dasharray", totalLength1 + " " + totalLength1)
+		.attr("stroke-dashoffset", totalLength1)
+		.transition() // Call Transition Method
+		.duration(2000) // Set Duration timing (ms)
+		.ease(d3.easeLinear) // Set Easing option
+		.attr("stroke-dashoffset", 0); 
+		
+	
+    </script>
+ 
+
+ 
+<script>
+
+// set the dimensions and margins of the graph
+var margin = {top: 10, right: 30, bottom: 30, left: 60},
+    width = 660 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+var svg = d3.select("#filtered_data")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+//Read the data
+d3.csv("https://raw.githubusercontent.com/Karveandhan/rental-price/main/line_data.csv", 
+       function(d){
+    return { year : d3.timeParse("%m/%d/%Y")(d.year), name : d.name, n:d.n }
+  },
+       function(dataa) {
+
+    // List of groups (here I have one group per column)
+    var allGroup = d3.map(dataa, function(d){return(d.name)}).keys()
+
+    // add the options to the button
+    d3.select("#selectButton")
+      .selectAll('myOptions')
+     	.data(allGroup)
+      .enter()
+    	.append('option')
+      .text(function (d) { return d; }) // text showed in the menu
+      .attr("value", function (d) { return d; }) // corresponding value returned by the button
+
+    // A color scale: one color for each group
+    var myColor = d3.scaleOrdinal()
+      .domain(allGroup)
+      .range(d3.schemeSet2);
+
+   // Add X axis --> it is a date format
+    var x = d3.scaleTime()
+      .domain(d3.extent(dataa, function(d) { return d.year; }))
+      .range([ 0, width ]);
+    svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+    // Add Y axis
+    var y = d3.scaleLinear()
+      .domain([500, d3.max(dataa, function(d) { return +d.n; })])
+      .range([ height, 0 ]);
+    svg.append("g")
+      .call(d3.axisLeft(y));
+
+    // Initialize line with first group of the list
+    var line = svg
+      .append('g')
+      .append("path")
+        .datum(dataa.filter(function(d){return d.name==allGroup[0]}))
+        .attr("d", d3.line()
+          .x(function(d) { return x(d.year) })
+          .y(function(d) { return y(+d.n) })
+        )
+        .attr("stroke", function(d){ return myColor("valueA") })
+        .style("stroke-width", 4)
+        .style("fill", "none")
+
+    // A function that update the chart
+    function update_data(selectedGroup) {
+
+      // Create new data with the selection?
+      var dataFilter = dataa.filter(function(d){return d.name==selectedGroup})
+
+      // Give these new data to update line
+      line
+          .datum(dataFilter)
+          .transition()
+          .duration(1000)
+          .attr("d", d3.line()
+            .x(function(d) { return x(d.year) })
+            .y(function(d) { return y(+d.n) })
+          )
+          .attr("stroke", function(d){ return myColor(selectedGroup) })
+    }
+
+    // When the button is changed, run the updateChart function
+    d3.select("#selectButton").on("change", function(d) {
+        // recover the option that has been chosen
+        var selectedOption = d3.select(this).property("value")
+        // run the updateChart function with this selected option
+        update_data(selectedOption)
+    })
+
+})
+
+
+</script> 
+
+    </body>
+
+</html>
+
+* For every city except New York, we can see that the rental prices of that particular city follows the trend of the entire US rental price through 2019 to 2021.
+* But for New York, there is a clear slight drop in the rental prices during the year 2020 (pandemic).
+* Also we observed that the less popular City saw an increase in median rent during the pandemic, this was partly driven by the wide spread "Work From Home" inititives.
+* Low mortgage rate during this pandemic also accounts for this trend.
+* So, it is evident that the actual data replicates our assumption here.
+* Hence, our hypothesis is true.
+
+

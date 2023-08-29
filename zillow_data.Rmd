@@ -1,0 +1,187 @@
+---
+title: "zillow_data_collection"
+author: "Manisha"
+date: "2023-08-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Zillow Rental Price Analysis
+
+We scraped the data from https://www.zillow.com/research/data/.
+
+Zillow Observed Rent Index (ZORI): A smoothed measure of the typical observed market rate rent across a given region. ZORI is a repeat-rent index that is weighted to the rental housing stock to ensure representativeness across the entire market, not just those homes currently listed for-rent. The index is dollar-denominated by computing the mean of listed rents that fall into the 40th to 60th percentile range for all homes and apartments in a given region, which is once again weighted to reflect the rental housing stock.
+
+
+## Information about the data
+
+* Number of rows - 105
+* Number of columns - 97
+
+The data contains the rental prices (in USD) of 104 different cities in US from Jan 2014 to Oct 2021. 
+
+## Format of the data
+
+Variables                | Description
+-----------------------  | ------------------------------------------------------------------------------------------------
+RegionID                 | ID mentioned for that particular region of US (Integer)
+RegionName               | A city in the US (String)
+SizeRank                 | The rank assigned to that particular region (Integer)
+2014-01 to 2021-10       | Rental price for that particular month, in USD (Integer)
+
+## A quick sample of the data
+
+
+```{r}
+
+data <- read.csv("zillow_data.csv",header = TRUE, sep=",")
+
+head(data, 10)
+```
+## Data Transformation 
+
+# Data transformation
+We downloaded data as csv files from Zillow and transformed it based on our need. We selected the related variables only and transformed them into the format for plotting, by **dplyr** package functions such as `mutate()`, `select()`, `filter()`, `group_by()`, `summarise()` and **tidyr** package functions like `gather()` and `spread()`.
+
+We picked City, State, and median house prices, and used it for our EDA and other analysis.
+In the interactive chart we wanted to explore various data sources in d3 and we used csv and static Json created inside the html page.
+
+Here's the static Json we created for the interactive d3 Chart:
+```
+var data19 = [
+{group: "San Jose, CA", value: 3090.5},
+{group: "San Francisco, CA", value: 3015},
+{group: "New York, NY", value: 2743.5},
+{group: "Boston, MA", value: 2483.5},
+{group: "Ventura, CA", value: 2436.5},
+{group: "Urban Honolulu, HI", value: 2349.5},
+{group: "Los Angeles-Long Beach-Anaheim, CA", value: 2304.5},
+{group: "San Diego, CA", value: 2230},
+{group: "Stamford, CT", value: 2169.5}
+];
+
+var data20 = [
+{group: "San Jose, CA", value: 3027},
+{group: "San Francisco, CA", value: 2936.5},
+{group: "New York, NY", value: 2659},
+{group: "Boston, MA", value: 2454.5},
+{group: "Ventura, CA", value: 2495},
+{group: "Urban Honolulu, HI", value: 2356.5},
+{group: "Los Angeles-Long Beach-Anaheim, CA", value: 2322.5},
+{group: "San Diego, CA", value: 2282.5},
+{group: "Stamford, CT", value: 2237.5}];
+
+var data21 = [
+{group: "San Jose, CA", value: 2993.5},
+{group: "San Francisco, CA", value: 2909.5},
+{group: "New York, NY", value: 2667},
+{group: "Boston, MA", value: 2498},
+{group: "Ventura, CA", value: 2746},
+{group: "Urban Honolulu, HI", value: 2487},
+{group: "Los Angeles-Long Beach-Anaheim, CA", value: 2430.5},
+{group: "San Diego, CA", value: 2490.5},
+{group: "Stamford, CT", value: 2421}];  
+```
+As the data itself is in a clean format, there was no necessity for us to transform the data much.
+
+Here is a quick glimpse of the main data.
+
+```{r, fig.width=20, fig.height=8}
+
+data <- read.csv("zillow_data.csv",header = TRUE, sep=",")
+
+tail(data, 10)
+
+```
+# Missing Values
+```{r, fig.width=20, fig.height=8}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gridExtra)
+plot_missing <- function(dataf,percent){
+  
+  if(sum(is.na(dataf))>0){
+  
+missing.values <- dataf %>%
+    gather(key = "key", value = "val") %>%
+    mutate(is.missing = is.na(val)) %>%
+    group_by(key, is.missing) %>%
+    summarise(num.missing = n()) %>%
+    filter(is.missing==T) %>%
+    select(-is.missing) %>%
+    arrange(desc(num.missing)) 
+
+missing_val.plot <- missing.values %>%
+  ggplot() +
+    geom_bar(aes(x=key, y=num.missing, fill='tomato2'), stat = 'identity') +
+   scale_fill_manual(name = "", 
+                        values = c('tomato2'), labels = c("Missing"))+
+    labs(x='variable', y="number of missing values", title='Number of missing values') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+missing.values <- dataf %>%
+  gather(key = "key", value = "val") %>%
+  mutate(isna = is.na(val)) %>%
+  group_by(key) %>%
+  mutate(total = n()) %>%
+  group_by(key, total, isna) %>%
+  summarise(num.isna = n()) %>%
+  mutate(pct = num.isna / total * 100)
+
+
+levels <-
+    (missing.values  %>% filter(isna == T) %>% arrange(desc(pct)))$key
+
+
+
+percentage_missing.plot <- missing.values %>%
+      ggplot() +
+        geom_bar(aes(x = reorder(key, desc(pct)), 
+                     y = pct, fill=isna), 
+                 stat = 'identity', alpha=0.8) +
+      scale_x_discrete(limits = levels) +
+      scale_fill_manual(name = "", 
+                        values = c('steelblue3', 'tomato2'), labels = c("Present", "Missing")) +
+      coord_flip() +
+      labs(title = "Percentage of missing values", x =
+             'Variable', y = "% of missing values")
+
+
+if (percent==TRUE){
+  return(grid.arrange(missing_val.plot,percentage_missing.plot, ncol = 2))
+}
+else{
+  return(missing_val.plot)
+}
+
+  }
+  else{
+    return('No Missing Values in the entire dataframe')
+    
+  }
+}
+```
+
+
+```{r, fig.width=20, fig.height=8}
+data <- read.csv("zillow_data.csv",header = TRUE, sep=",")
+plot_missing(data, percent = TRUE)
+```
+From the above graph - "Percentage of missing values", we can clearly see that the number of missing values in our dataset are significantly very less.
+
+
+```{r, fig.width=20, fig.height=8}
+
+plot_missing(data, percent = FALSE)
+
+```
+
+
+* Most of the missing values belong to the initial part of the time frame (Jan 2014). While there are relatively fewer missing values in few months in the current year (2021).
+
+* The significance of these missing value of the project will be less as there are sufficient datas available to carry out the project. There is only one data missing in the previous month (October 2021). So, with this available dataset project can be proceeded.
